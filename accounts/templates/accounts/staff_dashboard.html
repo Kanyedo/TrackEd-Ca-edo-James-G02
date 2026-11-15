@@ -1,0 +1,14 @@
+{% extends "accounts/base.html" %}
+{% block title %}CCCSP staff dashboard · TrackEd Cebu{% endblock %}
+{% block content %}
+<section class="page-heading dashboard-heading">
+    <div><p class="eyebrow">CCCSP STAFF DASHBOARD</p><h1>Welcome, {{ user.first_name|default:user.username }}</h1><p class="muted">Staff workspace for TrackEd Cebu.</p></div>
+    <a class="button button-secondary" href="{% url 'accounts:profile' %}">View my profile</a>
+</section>
+<section class="feature-card staff-card">
+    <div class="card-icon">01</div>
+    <p class="eyebrow">PLANNED FOR A LATER INCREMENT</p>
+    <h2>Partner school billing dashboard</h2>
+    <p class="muted">Billing submission records and school status updates will be added in a later project increment.</p>
+</section>
+{% endblock %}

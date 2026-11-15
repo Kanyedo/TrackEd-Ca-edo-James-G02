@@ -1,0 +1,42 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}TrackEd Cebu{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="{% if user.is_authenticated %}{% url 'accounts:dashboard' %}{% else %}{% url 'accounts:login' %}{% endif %}">
+            <span class="brand-mark">T</span>
+            <span>TrackEd <span class="brand-light">Cebu</span></span>
+        </a>
+        <nav aria-label="Main navigation">
+            {% if user.is_authenticated %}
+                <a href="{% url 'accounts:dashboard' %}">Dashboard</a>
+                <a href="{% url 'accounts:profile' %}">My profile</a>
+                <form class="nav-form" method="post" action="{% url 'accounts:logout' %}">
+                    {% csrf_token %}
+                    <button class="nav-logout" type="submit">Log out</button>
+                </form>
+            {% else %}
+                <a href="{% url 'accounts:login' %}">Log in</a>
+                <a class="nav-cta" href="{% url 'accounts:register' %}">Create account</a>
+            {% endif %}
+        </nav>
+    </header>
+    <main class="page">
+        {% if messages %}
+            <div class="messages" aria-live="polite">
+                {% for message in messages %}
+                    <div class="message message-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="footer">TrackEd Cebu · CCCSP Scholarship Tracking and Eligibility System</footer>
+</body>
+</html>

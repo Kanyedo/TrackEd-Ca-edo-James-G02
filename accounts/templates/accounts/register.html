@@ -1,0 +1,25 @@
+{% extends "accounts/base.html" %}
+{% block title %}Create account · TrackEd Cebu{% endblock %}
+{% block content %}
+<section class="form-panel form-panel-wide">
+    <p class="eyebrow">GET STARTED</p>
+    <h1>Create your student account</h1>
+    <p class="muted">Register to use TrackEd Cebu. Student accounts are created through this form; CCCSP staff accounts are managed by an administrator.</p>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="field-errors">{{ form.non_field_errors }}</div>{% endif %}
+        <div class="form-grid">
+            {% for field in form %}
+                <div class="form-field{% if field.name == 'password1' or field.name == 'password2' %} field-span{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<div class="help-text">{{ field.help_text }}</div>{% endif %}
+                    {% if field.errors %}<div class="field-errors">{{ field.errors }}</div>{% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        <button class="button button-primary" type="submit">Create student account</button>
+    </form>
+    <p class="form-foot">Already registered? <a href="{% url 'accounts:login' %}">Log in</a></p>
+</section>
+{% endblock %}
