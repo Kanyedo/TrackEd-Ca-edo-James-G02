@@ -1,0 +1,35 @@
+{% extends "accounts/base.html" %}
+{% block title %}My profile · TrackEd Cebu{% endblock %}
+{% block content %}
+<section class="page-heading">
+    <p class="eyebrow">ACCOUNT</p>
+    <h1>My profile</h1>
+    <p class="muted">View and update your own account details.</p>
+</section>
+<section class="form-panel form-panel-wide">
+    <div class="profile-summary">
+        <div class="avatar">{{ user.first_name|default:user.username|slice:":1"|upper }}</div>
+        <div><h2>{{ user.get_full_name|default:user.username }}</h2><p class="muted">{{ user.account_profile.get_role_display }}</p></div>
+    </div>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="form-grid">
+            {% for field in user_form %}
+                <div class="form-field">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}<div class="field-errors">{{ field.errors }}</div>{% endif %}
+                </div>
+            {% endfor %}
+            {% for field in details_form %}
+                <div class="form-field">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}<div class="field-errors">{{ field.errors }}</div>{% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        <button class="button button-primary" type="submit">Save changes</button>
+    </form>
+</section>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "accounts/base.html" %}
+{% block title %}Student dashboard · TrackEd Cebu{% endblock %}
+{% block content %}
+<section class="page-heading dashboard-heading">
+    <div><p class="eyebrow">STUDENT DASHBOARD</p><h1>Welcome, {{ user.first_name|default:user.username }}</h1><p class="muted">Your TrackEd Cebu account is ready.</p></div>
+    <a class="button button-secondary" href="{% url 'accounts:profile' %}">View my profile</a>
+</section>
+<section class="card-grid">
+    <article class="feature-card">
+        <div class="card-icon">01</div>
+        <p class="eyebrow">COMING IN A LATER INCREMENT</p>
+        <h2>Allowance status tracker</h2>
+        <p class="muted">The upcoming tracker will let students look up allowance progress using a reference number.</p>
+    </article>
+    <article class="feature-card">
+        <div class="card-icon">02</div>
+        <p class="eyebrow">YOUR ACCOUNT</p>
+        <h2>Keep your details up to date</h2>
+        <p class="muted">Review your name, contact number, and school information in your profile.</p>
+        <a class="text-link" href="{% url 'accounts:profile' %}">Edit profile <span aria-hidden="true">→</span></a>
+    </article>
+</section>
+{% endblock %}

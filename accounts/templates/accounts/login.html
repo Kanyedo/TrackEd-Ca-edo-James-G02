@@ -1,0 +1,30 @@
+{% extends "accounts/base.html" %}
+{% block title %}Log in · TrackEd Cebu{% endblock %}
+{% block content %}
+<section class="auth-layout">
+    <div class="intro-panel">
+        <p class="eyebrow">CCCSP SCHOLARSHIP PORTAL</p>
+        <h1>Your scholarship journey, made clearer.</h1>
+        <p>Sign in to your TrackEd Cebu account to access your student or staff dashboard.</p>
+        <div class="intro-note"><span class="note-icon">✓</span> A clearer view of scholarship updates starts here.</div>
+    </div>
+    <div class="form-panel">
+        <p class="eyebrow">WELCOME BACK</p>
+        <h2>Log in to your account</h2>
+        <p class="muted">Enter the username and password associated with your account.</p>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="field-errors">{{ form.non_field_errors }}</div>{% endif %}
+            {% for field in form %}
+                <div class="form-field">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}<div class="field-errors">{{ field.errors }}</div>{% endif %}
+                </div>
+            {% endfor %}
+            <button class="button button-primary button-full" type="submit">Log in</button>
+        </form>
+        <p class="form-foot">New to TrackEd Cebu? <a href="{% url 'accounts:register' %}">Create a student account</a></p>
+    </div>
+</section>
+{% endblock %}
