@@ -1,0 +1,21 @@
+{% extends "accounts/base.html" %}
+{% block title %}Look up a reference · TrackEd Cebu{% endblock %}
+{% block content %}
+<section class="form-panel form-panel-narrow">
+    <p class="eyebrow">ALLOWANCE STATUS TRACKER</p>
+    <h1>Look up a reference number</h1>
+    <p class="muted">Enter the reference number to see the current status of an allowance.</p>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="form-field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}<div class="field-errors">{{ field.errors }}</div>{% endif %}
+            </div>
+        {% endfor %}
+        <button class="button button-primary button-full" type="submit">Check status</button>
+    </form>
+    <p class="form-foot"><a href="{% url 'allowances:list' %}">Back to allowance list</a></p>
+</section>
+{% endblock %}

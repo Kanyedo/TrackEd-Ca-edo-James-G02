@@ -1,0 +1,16 @@
+{% extends "accounts/base.html" %}
+{% block title %}Delete allowance record · TrackEd Cebu{% endblock %}
+{% block content %}
+<section class="form-panel form-panel-narrow">
+    <p class="eyebrow">CONFIRM DELETE</p>
+    <h1>Delete {{ record.reference_number }}?</h1>
+    <p class="muted">This removes the Pending allowance for {{ record.scholar.get_full_name|default:record.scholar.username }} ({{ record.academic_year }} · {{ record.get_semester_display }}). This cannot be undone.</p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-actions">
+            <button class="button button-danger" type="submit">Yes, delete</button>
+            <a class="button button-secondary" href="{% url 'allowances:detail' record.pk %}">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

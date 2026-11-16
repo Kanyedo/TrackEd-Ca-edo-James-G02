@@ -1,0 +1,29 @@
+{% extends "accounts/base.html" %}
+{% block title %}{% if mode == "create" %}New allowance record{% else %}Edit allowance record{% endif %} · TrackEd Cebu{% endblock %}
+{% block content %}
+<section class="page-heading">
+    <p class="eyebrow">CCCSP STAFF</p>
+    <h1>{% if mode == "create" %}New allowance record{% else %}Edit {{ record.reference_number }}{% endif %}</h1>
+    <p class="muted">{% if mode == "create" %}New records start as Pending. A reference number is generated automatically.{% else %}Move the record forward as it is processed. Released records are locked.{% endif %}</p>
+</section>
+<section class="form-panel form-panel-wide">
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="message message-error form-error">{{ form.non_field_errors }}</div>{% endif %}
+        <div class="form-grid">
+            {% for field in form %}
+                <div class="form-field{% if field.name == 'remarks' or field.name == 'scholar' %} field-span{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<div class="help-text">{{ field.help_text }}</div>{% endif %}
+                    {% if field.errors %}<div class="field-errors">{{ field.errors }}</div>{% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        <div class="form-actions">
+            <button class="button button-primary" type="submit">{% if mode == "create" %}Create record{% else %}Save changes{% endif %}</button>
+            <a class="button button-secondary" href="{% if mode == 'update' %}{% url 'allowances:detail' record.pk %}{% else %}{% url 'allowances:list' %}{% endif %}">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

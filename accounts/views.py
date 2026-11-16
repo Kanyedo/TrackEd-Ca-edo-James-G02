@@ -8,6 +8,8 @@ from django.db import transaction
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
+from allowances.summary import staff_summary, student_summary
+
 from .forms import ProfileDetailsForm, ProfileUserForm, RegistrationForm
 from .models import AccountProfile
 
@@ -83,12 +85,20 @@ def dashboard(request):
 
 @role_required(AccountProfile.Role.STUDENT)
 def student_dashboard(request):
-    return render(request, "accounts/student_dashboard.html")
+    return render(
+        request,
+        "accounts/student_dashboard.html",
+        {"allowance_summary": student_summary(request.user)},
+    )
 
 
 @role_required(AccountProfile.Role.STAFF)
 def staff_dashboard(request):
-    return render(request, "accounts/staff_dashboard.html")
+    return render(
+        request,
+        "accounts/staff_dashboard.html",
+        {"allowance_summary": staff_summary()},
+    )
 
 
 @login_required
