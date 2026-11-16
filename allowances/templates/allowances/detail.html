@@ -1,0 +1,60 @@
+{% extends "accounts/base.html" %}
+{% block title %}{{ record.reference_number }} · TrackEd Cebu{% endblock %}
+{% block content %}
+<section class="page-heading dashboard-heading">
+    <div>
+        <p class="eyebrow">ALLOWANCE RECORD</p>
+        <h1>{{ record.reference_number }}</h1>
+        <p class="muted">{{ record.academic_year }} · {{ record.get_semester_display }}</p>
+    </div>
+    <div class="heading-actions">
+        <a class="button button-secondary" href="{% url 'allowances:list' %}">Back to list</a>
+        {% if is_staff and not record.is_locked %}<a class="button button-primary" href="{% url 'allowances:update' record.pk %}">Edit record</a>{% endif %}
+        {% if is_staff and record.can_delete %}<a class="button button-danger" href="{% url 'allowances:delete' record.pk %}">Delete</a>{% endif %}
+    </div>
+</section>
+
+<section class="feature-card">
+    <div class="status-head">
+        <div><p class="eyebrow">CURRENT STATUS</p><span class="badge badge-large badge-{{ record.status }}">{{ record.get_status_display }}</span></div>
+        {% if record.is_locked %}<p class="muted">This record is released and locked.</p>{% endif %}
+    </div>
+    {% if record.status == "on_hold" %}
+        <div class="message message-error hold-note">This allowance is on hold.{% if record.remarks %} Reason: {{ record.remarks }}{% endif %}</div>
+    {% endif %}
+    <ol class="progress">
+        {% for step in steps %}
+            <li class="progress-step progress-{{ step.state }}"><span class="progress-dot"></span><span class="progress-label">{{ step.label }}</span></li>
+        {% endfor %}
+    </ol>
+</section>
+
+<section class="detail-grid">
+    <article class="feature-card">
+        <h2>Details</h2>
+        <dl class="detail-list">
+            <dt>Scholar</dt><dd>{{ record.scholar.get_full_name|default:record.scholar.username }}</dd>
+            <dt>Academic term</dt><dd>{{ record.academic_year }} · {{ record.get_semester_display }}</dd>
+            <dt>Allowance amount</dt><dd>₱{{ record.amount|floatformat:"2g" }}</dd>
+            {% if record.remarks and record.status != "on_hold" %}<dt>Remarks</dt><dd>{{ record.remarks }}</dd>{% endif %}
+            {% if is_staff %}<dt>Created by</dt><dd>{{ record.created_by.get_full_name|default:record.created_by.username|default:"Unknown" }}</dd>{% endif %}
+            <dt>Created</dt><dd>{{ record.created_at|date:"M j, Y g:i A" }}</dd>
+            <dt>Last updated</dt><dd>{{ record.updated_at|date:"M j, Y g:i A" }}</dd>
+        </dl>
+    </article>
+    <article class="feature-card">
+        <h2>Status history</h2>
+        <ul class="timeline">
+            {% for entry in history %}
+            <li>
+                <span class="badge badge-{{ entry.status }}">{{ entry.get_status_display }}</span>
+                <span class="timeline-date">{{ entry.changed_at|date:"M j, Y g:i A" }}{% if is_staff and entry.changed_by %} · {{ entry.changed_by.get_full_name|default:entry.changed_by.username }}{% endif %}</span>
+                {% if entry.remarks %}<p class="muted">{{ entry.remarks }}</p>{% endif %}
+            </li>
+            {% empty %}
+            <li class="muted">No status changes recorded.</li>
+            {% endfor %}
+        </ul>
+    </article>
+</section>
+{% endblock %}

@@ -16,6 +16,7 @@
         <nav aria-label="Main navigation">
             {% if user.is_authenticated %}
                 <a href="{% url 'accounts:dashboard' %}">Dashboard</a>
+                <a href="{% url 'allowances:list' %}">Allowances</a>
                 <a href="{% url 'accounts:profile' %}">My profile</a>
                 <form class="nav-form" method="post" action="{% url 'accounts:logout' %}">
                     {% csrf_token %}

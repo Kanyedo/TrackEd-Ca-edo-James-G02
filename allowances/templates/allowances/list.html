@@ -1,0 +1,73 @@
+{% extends "accounts/base.html" %}
+{% block title %}Allowances · TrackEd Cebu{% endblock %}
+{% block content %}
+<section class="page-heading dashboard-heading">
+    <div>
+        <p class="eyebrow">{% if is_staff %}CCCSP STAFF{% else %}STUDENT{% endif %}</p>
+        <h1>{% if is_staff %}Allowance records{% else %}My allowance status{% endif %}</h1>
+        <p class="muted">{% if is_staff %}Create, update, and track scholar allowances.{% else %}Follow the progress of your allowance for each term.{% endif %}</p>
+    </div>
+    <div class="heading-actions">
+        <a class="button button-secondary" href="{% url 'allowances:lookup' %}">Look up reference</a>
+        {% if is_staff %}<a class="button button-primary" href="{% url 'allowances:create' %}">New allowance record</a>{% endif %}
+    </div>
+</section>
+
+<form class="filter-bar" method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="{% if is_staff %}Search reference, scholar, or year{% else %}Search reference or year{% endif %}" aria-label="Search">
+    <select name="status" aria-label="Filter by status">
+        <option value="">All statuses</option>
+        {% for value, label in statuses %}
+            <option value="{{ value }}" {% if value == status %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <button class="button button-secondary" type="submit">Filter</button>
+    {% if q or status %}<a class="text-link filter-clear" href="{% url 'allowances:list' %}">Clear</a>{% endif %}
+</form>
+
+{% if page_obj.object_list %}
+<div class="table-wrap">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Reference</th>
+                {% if is_staff %}<th>Scholar</th>{% endif %}
+                <th>Term</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Last updated</th>
+                <th><span class="visually-hidden">Actions</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in page_obj %}
+            <tr>
+                <td><a class="text-link-inline" href="{% url 'allowances:detail' record.pk %}">{{ record.reference_number }}</a></td>
+                {% if is_staff %}<td>{{ record.scholar.get_full_name|default:record.scholar.username }}</td>{% endif %}
+                <td>{{ record.academic_year }} · {{ record.get_semester_display }}</td>
+                <td>₱{{ record.amount|floatformat:"2g" }}</td>
+                <td><span class="badge badge-{{ record.status }}">{{ record.get_status_display }}</span></td>
+                <td>{{ record.updated_at|date:"M j, Y" }}</td>
+                <td class="row-actions">
+                    <a href="{% url 'allowances:detail' record.pk %}">View</a>
+                    {% if is_staff and not record.is_locked %}<a href="{% url 'allowances:update' record.pk %}">Edit</a>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if page_obj.has_other_pages %}
+<nav class="pagination" aria-label="Pagination">
+    {% if page_obj.has_previous %}<a href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">← Previous</a>{% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Next →</a>{% endif %}
+</nav>
+{% endif %}
+{% else %}
+<section class="feature-card empty-state">
+    <h2>{% if q or status %}No records match your filters{% else %}No allowance records yet{% endif %}</h2>
+    <p class="muted">{% if q or status %}Try a different search or clear the filters.{% elif is_staff %}Create the first allowance record to start tracking.{% else %}Your allowance records will appear here once CCCSP staff add them.{% endif %}</p>
+</section>
+{% endif %}
+{% endblock %}
