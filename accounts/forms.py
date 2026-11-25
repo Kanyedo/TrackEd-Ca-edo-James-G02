@@ -31,6 +31,10 @@ class RegistrationForm(UserCreationForm):
 
 class ProfileUserForm(forms.ModelForm):
     email = forms.EmailField()
+    # Required here even though Django's User model allows blank names, so a
+    # profile save cannot wipe out the user's name.
+    first_name = forms.CharField(max_length=150)
+    last_name = forms.CharField(max_length=150)
 
     class Meta:
         model = User
@@ -47,3 +51,10 @@ class ProfileDetailsForm(forms.ModelForm):
     class Meta:
         model = AccountProfile
         fields = ("phone_number", "school_name")
+        help_texts = {"phone_number": "Optional. For example 0917 123 4567."}
+
+    def clean_phone_number(self):
+        return self.cleaned_data["phone_number"].strip()
+
+    def clean_school_name(self):
+        return self.cleaned_data["school_name"].strip()
