@@ -6,7 +6,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.db import transaction
 from django.shortcuts import redirect, render
-from django.views.decorators.http import require_POST
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_http_methods, require_POST
 
 from allowances.summary import staff_summary, student_summary
 
@@ -42,6 +43,22 @@ def role_required(role):
     return decorator
 
 
+def safe_next_url(request):
+    """Return the ?next= address only if it points back to this site.
+
+    Prevents open redirects such as /login/?next=https://evil.example.
+    """
+    target = request.POST.get("next") or request.GET.get("next") or ""
+    if target and url_has_allowed_host_and_scheme(
+        target,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return target
+    return ""
+
+
+@require_http_methods(["GET", "POST"])
 def register(request):
     if request.user.is_authenticated:
         return redirect(dashboard_url(request.user))
@@ -53,6 +70,7 @@ def register(request):
     return render(request, "accounts/register.html", {"form": form})
 
 
+@require_http_methods(["GET", "POST"])
 def login_view(request):
     if request.user.is_authenticated:
         return redirect(dashboard_url(request.user))
@@ -64,10 +82,14 @@ def login_view(request):
         user = form.get_user()
         login(request, user)
         messages.success(request, "Welcome back.")
-        return redirect(dashboard_url(user))
+        return redirect(safe_next_url(request) or dashboard_url(user))
     if request.method == "POST":
         messages.error(request, "The username or password you entered is incorrect.")
-    return render(request, "accounts/login.html", {"form": form})
+    return render(
+        request,
+        "accounts/login.html",
+        {"form": form, "next": safe_next_url(request)},
+    )
 
 
 @login_required
@@ -102,6 +124,7 @@ def staff_dashboard(request):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def profile(request):
     profile_record, _ = AccountProfile.objects.get_or_create(user=request.user)
     post_data = request.POST if request.method == "POST" else None
