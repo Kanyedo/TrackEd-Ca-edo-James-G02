@@ -7,7 +7,7 @@ from django.urls import reverse
 
 from accounts.models import AccountProfile
 
-from .models import AllowanceRecord, StatusUpdate
+from allowances.models import AllowanceRecord, StatusUpdate
 
 User = get_user_model()
 PASSWORD = "StrongPassword!42"
