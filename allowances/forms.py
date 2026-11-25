@@ -2,6 +2,7 @@ import re
 
 from django import forms
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 from .models import AllowanceRecord
 
@@ -9,6 +10,8 @@ User = get_user_model()
 
 ACADEMIC_YEAR_PATTERN = re.compile(r"^(\d{4})-(\d{4})$")
 REFERENCE_PATTERN = re.compile(r"^CCCSP-\d{4}-[A-Z0-9]{6}$")
+EARLIEST_ACADEMIC_YEAR = 2000
+REMARKS_MAX_LENGTH = 1000
 
 
 def student_queryset():
@@ -82,7 +85,22 @@ class AllowanceRecordForm(forms.ModelForm):
             raise forms.ValidationError(
                 "The second year must be exactly one year after the first (for example 2026-2027)."
             )
+        # No records for terms too far in the past or more than one school
+        # year ahead.
+        latest = timezone.localdate().year + 1
+        if not EARLIEST_ACADEMIC_YEAR <= start <= latest:
+            raise forms.ValidationError(
+                f"Academic year must start between {EARLIEST_ACADEMIC_YEAR} and {latest}."
+            )
         return value
+
+    def clean_remarks(self):
+        remarks = (self.cleaned_data.get("remarks") or "").strip()
+        if len(remarks) > REMARKS_MAX_LENGTH:
+            raise forms.ValidationError(
+                f"Keep remarks to {REMARKS_MAX_LENGTH} characters or fewer."
+            )
+        return remarks
 
     def clean(self):
         cleaned = super().clean()
