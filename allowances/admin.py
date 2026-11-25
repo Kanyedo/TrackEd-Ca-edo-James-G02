@@ -16,4 +16,5 @@ class AllowanceRecordAdmin(admin.ModelAdmin):
     list_filter = ("status", "semester", "academic_year")
     search_fields = ("reference_number", "scholar__username", "scholar__first_name", "scholar__last_name")
     readonly_fields = ("reference_number", "created_by", "created_at", "updated_at")
+    list_select_related = ("scholar",)
     inlines = (StatusUpdateInline,)

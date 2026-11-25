@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.conf import settings
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.crypto import get_random_string
@@ -10,6 +10,7 @@ from django.utils.crypto import get_random_string
 REFERENCE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 MIN_AMOUNT = Decimal("1.00")
 MAX_AMOUNT = Decimal("50000.00")
+ACADEMIC_YEAR_REGEX = r"^[0-9]{4}-[0-9]{4}$"
 
 
 class AllowanceRecord(models.Model):
@@ -64,7 +65,12 @@ class AllowanceRecord(models.Model):
         editable=False,
         related_name="created_allowance_records",
     )
-    academic_year = models.CharField(max_length=9)
+    academic_year = models.CharField(
+        max_length=9,
+        validators=[
+            RegexValidator(ACADEMIC_YEAR_REGEX, "Enter the academic year like 2026-2027.")
+        ],
+    )
     semester = models.CharField(max_length=10, choices=Semester.choices)
     amount = models.DecimalField(
         max_digits=10,
@@ -91,7 +97,32 @@ class AllowanceRecord(models.Model):
                     "This scholar already has an allowance record for that "
                     "academic year and semester."
                 ),
-            )
+            ),
+            # Database-level guards (PD3): even a bug or a direct database
+            # write cannot store an out-of-range amount or an unknown value.
+            models.CheckConstraint(
+                condition=models.Q(amount__gte=MIN_AMOUNT) & models.Q(amount__lte=MAX_AMOUNT),
+                name="allowance_amount_in_range",
+                violation_error_message="Amount must be between PHP 1.00 and PHP 50,000.00.",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    status__in=["pending", "verifying", "approved", "ready", "released", "on_hold"]
+                ),
+                name="allowance_status_valid",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(semester__in=["1st", "2nd", "summer"]),
+                name="allowance_semester_valid",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(academic_year__regex=ACADEMIC_YEAR_REGEX),
+                name="allowance_academic_year_format",
+                violation_error_message="Enter the academic year like 2026-2027.",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["status"], name="allowance_status_idx"),
         ]
 
     def __str__(self):
@@ -175,6 +206,12 @@ class StatusUpdate(models.Model):
 
     class Meta:
         ordering = ["-changed_at", "-id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(status__in=AllowanceRecord.Status.values),
+                name="status_update_status_valid",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.record.reference_number} -> {self.get_status_display()}"

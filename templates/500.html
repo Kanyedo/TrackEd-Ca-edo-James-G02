@@ -1,0 +1,30 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Server error · TrackEd Cebu</title>
+    <link rel="stylesheet" href="{% static 'accounts/style.css' %}">
+</head>
+<body>
+    {# Rendered without a request context, so it must not rely on user, messages, or the database. #}
+    <header class="topbar">
+        <a class="brand" href="/">
+            <span class="brand-mark">T</span>
+            <span>TrackEd <span class="brand-light">Cebu</span></span>
+        </a>
+    </header>
+    <main class="page">
+        <section class="form-panel form-panel-narrow error-page">
+            <p class="eyebrow">ERROR 500</p>
+            <h1>Something went wrong on our side</h1>
+            <p class="muted">The error has been logged. Your data was not changed. Please go back and try again in a moment.</p>
+            <div class="form-actions">
+                <a class="button button-primary" href="/">Back to TrackEd Cebu</a>
+            </div>
+        </section>
+    </main>
+    <footer class="footer">TrackEd Cebu · CCCSP Scholarship Tracking and Eligibility System</footer>
+</body>
+</html>

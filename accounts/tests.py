@@ -164,3 +164,146 @@ class AccountFeatureTests(TestCase):
 
         self.assertRedirects(response, reverse("accounts:login"))
         self.assertNotIn("_auth_user_id", self.client.session)
+
+
+class AccountHardeningTests(TestCase):
+    """PD3 hardening checks for the standard features."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="student",
+            email="student@example.com",
+            password="StrongPassword!42",
+            first_name="Sample",
+            last_name="User",
+        )
+
+    def profile_payload(self, **overrides):
+        data = {
+            "user-first_name": "Sample",
+            "user-last_name": "User",
+            "user-email": "student@example.com",
+            "profile-phone_number": "",
+            "profile-school_name": "",
+        }
+        data.update(overrides)
+        return data
+
+    def test_login_ignores_next_urls_to_other_sites(self):
+        for evil in ("https://evil.example/", "//evil.example/", "javascript:alert(1)"):
+            with self.subTest(next=evil):
+                response = self.client.post(
+                    reverse("accounts:login"),
+                    {"username": "student", "password": "StrongPassword!42", "next": evil},
+                )
+                self.assertRedirects(response, reverse("accounts:student_dashboard"))
+                self.client.post(reverse("accounts:logout"))
+
+    def test_logout_by_get_is_refused(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("accounts:logout"))
+        self.assertEqual(response.status_code, 405)
+        self.assertIn("_auth_user_id", self.client.session)
+
+    def test_profile_rejects_blank_names(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("accounts:profile"),
+            self.profile_payload(**{"user-first_name": "  ", "user-last_name": ""}),
+        )
+        self.assertContains(response, "This field is required")
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.first_name, "Sample")
+
+    def test_profile_rejects_invalid_phone_number(self):
+        self.client.force_login(self.user)
+        for bad in ("abc", "12", "0917<script>"):
+            with self.subTest(phone=bad):
+                response = self.client.post(
+                    reverse("accounts:profile"),
+                    self.profile_payload(**{"profile-phone_number": bad}),
+                )
+                self.assertContains(response, "Enter a valid phone number")
+        self.user.account_profile.refresh_from_db()
+        self.assertEqual(self.user.account_profile.phone_number, "")
+
+    def test_profile_accepts_valid_phone_number(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("accounts:profile"),
+            self.profile_payload(**{"profile-phone_number": " 0917 123 4567 "}),
+            follow=True,
+        )
+        self.assertContains(response, "Your profile has been updated.")
+        self.user.account_profile.refresh_from_db()
+        self.assertEqual(self.user.account_profile.phone_number, "0917 123 4567")
+
+    def test_database_rejects_unknown_role(self):
+        from django.db import IntegrityError, transaction
+
+        profile = self.user.account_profile
+        profile.role = "admin"
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            profile.save()
+
+    def test_registration_cannot_grant_staff_role(self):
+        self.client.post(
+            reverse("accounts:register"),
+            {
+                "username": "sneaky",
+                "first_name": "Sneaky",
+                "last_name": "User",
+                "email": "sneaky@example.com",
+                "password1": "StrongPassword!42",
+                "password2": "StrongPassword!42",
+                "role": "staff",
+                "account_profile-role": "staff",
+            },
+        )
+        sneaky = User.objects.get(username="sneaky")
+        self.assertEqual(sneaky.account_profile.role, AccountProfile.Role.STUDENT)
+
+    def test_admin_bulk_action_sets_staff_role(self):
+        admin_user = User.objects.create_superuser("admin", "admin@example.com", "StrongPassword!42")
+        self.client.force_login(admin_user)
+        response = self.client.post(
+            reverse("admin:auth_user_changelist"),
+            {"action": "make_staff", "_selected_action": [self.user.pk]},
+            follow=True,
+        )
+        self.assertContains(response, "set to CCCSP Staff")
+        self.user.account_profile.refresh_from_db()
+        self.assertEqual(self.user.account_profile.role, AccountProfile.Role.STAFF)
+
+    def test_debug_flag_is_read_from_env_and_defaults_to_off(self):
+        import os
+        from unittest import mock
+
+        from config.settings import env_bool
+
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertFalse(env_bool("DJANGO_DEBUG"))
+        for raw, expected in (("True", True), ("1", True), ("false", False), ("", False)):
+            with self.subTest(raw=raw), mock.patch.dict(os.environ, {"DJANGO_DEBUG": raw}):
+                self.assertEqual(env_bool("DJANGO_DEBUG"), expected)
+
+
+class RowLevelSecurityTests(TestCase):
+    """ISS-01: every table has Row Level Security turned on after migrate."""
+
+    def test_all_tables_have_rls_enabled(self):
+        from django.db import connection
+
+        if connection.vendor != "postgresql":
+            self.skipTest("Row Level Security is a PostgreSQL feature.")
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT c.relname FROM pg_class c
+                JOIN pg_namespace n ON n.oid = c.relnamespace
+                WHERE n.nspname = 'public' AND c.relkind = 'r' AND NOT c.relrowsecurity
+                """
+            )
+            without_rls = [row[0] for row in cursor.fetchall()]
+        self.assertEqual(without_rls, [])
+        self.assertIn("allowances_allowancerecord", connection.introspection.table_names())
