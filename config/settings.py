@@ -28,12 +28,26 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 if not SECRET_KEY:
     raise ImproperlyConfigured('Set DJANGO_SECRET_KEY in your .env file.')
 
-DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() == 'true'
-ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
-    if host.strip()
-]
+
+
+def env_bool(name, default=False):
+    """Read a True/False flag from .env (accepts true/false, 1/0, yes/no, on/off)."""
+    value = os.getenv(name)
+    if value is None or value.strip() == '':
+        return default
+    return value.strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def env_list(name, default=''):
+    return [item.strip() for item in os.getenv(name, default).split(',') if item.strip()]
+
+
+# DEBUG is controlled only from .env and is off unless explicitly turned on.
+# With DEBUG off, Django shows the custom templates/404.html and 500.html
+# pages instead of debug tracebacks.
+DEBUG = env_bool('DJANGO_DEBUG', default=False)
+ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1')
+CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS')
 
 
 # Application definition
@@ -64,7 +78,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -136,3 +150,43 @@ STATIC_URL = 'static/'
 LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'accounts:dashboard'
 LOGOUT_REDIRECT_URL = 'accounts:login'
+
+
+# Security hardening (PD3)
+# https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
+
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_EXPIRE_AT_BROWSER_CLOSE = env_bool('DJANGO_SESSION_EXPIRE_AT_BROWSER_CLOSE', default=False)
+SESSION_COOKIE_AGE = 60 * 60 * 8  # log users out after 8 hours
+X_FRAME_OPTIONS = 'DENY'
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = 'same-origin'
+
+# Turn these on in .env only when the site is served over HTTPS; on plain
+# http://127.0.0.1 secure cookies would stop login from working.
+SESSION_COOKIE_SECURE = env_bool('DJANGO_SECURE_COOKIES', default=False)
+CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
+SECURE_SSL_REDIRECT = env_bool('DJANGO_SECURE_SSL_REDIRECT', default=False)
+
+# Stop huge form posts from tying up the server.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2_621_440  # 2.5 MB
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 200
+
+# Errors are logged to the console (never shown to users when DEBUG is off).
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {'format': '[{asctime}] {levelname} {name}: {message}', 'style': '{'},
+    },
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler', 'formatter': 'simple'},
+    },
+    'loggers': {
+        'django.request': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
+        'django.security': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
+    },
+}
